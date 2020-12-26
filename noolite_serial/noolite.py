@@ -63,6 +63,17 @@ class Noolite:
         else:
             return False
 
+    def callback(self, ch):
+        """
+        Декоратор, добавляет функцию в список колбэков канала
+        :param ch:
+        :return:
+        """
+        def deco(foo):
+            self.callbacks[ch].append(foo)
+            return foo
+        return deco
+
     @property
     async def in_commands(self):
         """

@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='noolite_serial',
-    version='0.1.2',
+    version='0.1.3',
     packages=['noolite_serial'],
     url='',
     license='',
