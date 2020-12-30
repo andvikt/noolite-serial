@@ -4,12 +4,12 @@ from collections import defaultdict
 from datetime import datetime
 import serial
 from . import const
-from .typing import NooliteCommand, BaseNooliteRemote, MotionSensor
+from .command import NooliteCommand
 from typing import Callable
 import typing
 
 lg = logging.getLogger('noolite')
-CbType = Callable[[BaseNooliteRemote], typing.Any]
+CbType = Callable[[NooliteCommand], typing.Any]
 
 
 class NotApprovedError(Exception):
@@ -27,7 +27,7 @@ class Noolite:
         self.callbacks: typing.DefaultDict[int, typing.List[CbType]] = defaultdict(list)
         self._cmd_log: typing.Dict[int, datetime] = {}
         self._get_events = False
-        self.event_que: asyncio.Queue[BaseNooliteRemote] = asyncio.Queue()
+        self.event_que: asyncio.Queue[NooliteCommand] = asyncio.Queue()
         self.tty = _get_tty(tty_name)
         self.loop = loop
         self.loop.add_reader(self.tty.fd, self._handle_tty)
@@ -91,25 +91,12 @@ class Noolite:
         :param resp:
         :return:
         """
+        await asyncio.sleep(0.05)
         try:
-            dispatcher, name = const.dispatchers.get(resp.cmd, (None, None))
-            if name:
-                lg.debug(f'dispatching %s', name)
-            if dispatcher is None:
-                dispatcher = BaseNooliteRemote
-            remote = dispatcher(resp)
-            for cb in self.callbacks[remote.ch]:
-                asyncio.create_task(cb(remote))
-            if isinstance(remote, MotionSensor):
-                l = self._cmd_log.get(remote.channel)
-                self._cmd_log[remote.channel] = datetime.now()
-                if l is not None and self.anti_jitter is not None:
-                    td = (datetime.now() - l).total_seconds()
-                    if td < self.anti_jitter:
-                        lg.debug(f'anti-jitter: %s', resp)
-                        return
+            for cb in self.callbacks[resp.ch]:
+                asyncio.create_task(cb(resp))
             if self._get_events:
-                await self.event_que.put(remote)
+                await self.event_que.put(resp)
         except Exception:
             lg.exception(f'handling {resp}')
             raise

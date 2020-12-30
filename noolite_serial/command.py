@@ -1,7 +1,6 @@
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, astuple, field, asdict
-import time
 
 
 APPROVAL_TIMEOUT = 5
@@ -72,11 +71,12 @@ class NooliteCommand:
         """
         Создает команду, добавляет кол-во повторов если нужно
 
-        :param ch:
-        :param duration:
-        :param args:
+        :param ch: канал
+        :param duration: длительность (для временного включения)
+        :param br: яркость (для регулирования яркости)
         :param nrep: кол-во дополнительных повторов (макс 3)
-        :param kwargs:
+        :param args:
+        :param kwargs: остальные данные передаваемые в исходный конструктор
         :return:
         """
         lg.debug(f'build command: {args}, nrep={nrep}, duration={duration}, {kwargs}')
@@ -100,43 +100,9 @@ class NooliteCommand:
         ret[2] = ctr
         return cls(*ret)
 
-
-class BaseNooliteRemote(object):
-
-    """
-    Базовый класс для описания пульта noolite
-    """
-
-    def __init__(self, command: NooliteCommand):
-        self.command = command
-        self.last_update = time.time()
-
-    @property
-    def ch(self):
-        return self.command.ch
-
-    @property
-    def cmd(self):
-        """
-        Команда
-        :return:
-        """
-        return self.command.cmd
-
-
-    @property
-    def channel(self):
-        return self.command.ch
-
     @property
     def battery_status(self):
-        return int('{:08b}'.format(self.command.d1)[0])
-
-
-class TempHumSensor(BaseNooliteRemote):
-
-    def __str__(self):
-        return 'Ch: {}, battery: {}, temp: {}, hum: {}'.format(self.channel, self.battery_status, self.temp, self.hum)
+        return int('{:08b}'.format(self.d1)[0])
 
     @property
     def sensor_type(self):
@@ -148,7 +114,7 @@ class TempHumSensor(BaseNooliteRemote):
         #   000-зарезервировано
         #   001-датчик температуры (PT112)
         #   010-датчик температуры/влажности (PT111)
-        return '{:08b}'.format(self.command.d1)[1:4]
+        return '{:08b}'.format(self.d1)[1:4]
 
     @property
     def temp(self):
@@ -172,18 +138,12 @@ class TempHumSensor(BaseNooliteRemote):
         """
         # Если датчик PT111 (с влажностью), то получаем влажность из 3 байта данных
         if self.sensor_type == '010':
-            return self.command.d2
+            return self.d2
 
     @property
     def analog_sens(self):
         # Значение, считываемое с аналогового входа датчика; 8 бит; (по умолчанию = 255)
-        return self.command.d3
-
-
-class MotionSensor(BaseNooliteRemote):
-
-    def __str__(self):
-        return 'Ch: {}, battery: {}, active_time: {}'.format(self.channel, self.battery_status, self.active_time)
+        return self.d3
 
     @property
     def active_time(self):
@@ -191,13 +151,4 @@ class MotionSensor(BaseNooliteRemote):
         Время на которое включается устройство
         :return:
         """
-        return self.command.d0 * 5
-
-    @property
-    def is_active(self):
-        """
-        Статус активности
-        :return:
-        """
-        return self.last_update + self.active_time >= time.time()
-
+        return self.d0 * 5
