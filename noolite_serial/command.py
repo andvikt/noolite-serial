@@ -88,7 +88,13 @@ class NooliteCommand:
             kwargs['d1'] = ((duration // 5) & 0xFF00) >> 8
         if br:
             kwargs['fmt'] = 1
-            kwargs['d0'] = 40 + round((br / 100) * 60)
+
+            if br >= 100:
+                kwargs['d0'] = 155
+            elif br <= 0:
+                kwargs['d0'] = 0
+            else:
+                kwargs['d0'] = 35 + int((120 * (br/100)) + 0.5)
         ret = cls(*args, **kwargs)
         if nrep == 0:
             return ret
