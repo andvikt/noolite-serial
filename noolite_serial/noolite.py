@@ -28,6 +28,7 @@ class Noolite:
         self._cmd_log: typing.Dict[int, datetime] = {}
         self._get_events = False
         self.event_que: asyncio.Queue[NooliteCommand] = asyncio.Queue()
+        self.tty_name = tty_name
         self.tty = _get_tty(tty_name)
         self.loop = loop
         self.loop.add_reader(self.tty.fd, self._handle_tty)
@@ -41,13 +42,28 @@ class Noolite:
         Хендлер входящих данных от адаптера
         :return:
         """
-        while self.tty.in_waiting >= 17:
-            in_bytes = self.tty.read(17)
-            resp = NooliteCommand(*(x for x in in_bytes))
-            lg.debug(f'< %s', list(in_bytes))
-            if self._cancel_waiting(resp):
+        try:
+            while self.tty.in_waiting >= 17:
+                in_bytes = self.tty.read(17)
+                resp = NooliteCommand(*(x for x in in_bytes))
+                lg.debug(f'< %s', list(in_bytes))
+                if self._cancel_waiting(resp):
+                    return
+                asyncio.create_task(self.handle_command(resp))
+        except OSError:
+            self.loop.remove_reader(self.tty.fd)
+            self.loop.create_task(self.reconnect())
+
+    async def reconnect(self):
+        while True:
+            await asyncio.sleep(5)
+            lg.debug('reconnecting')
+            try:
+                self.tty = _get_tty(self.tty_name)
+                self.loop.add_reader(self.tty.fd, self._handle_tty)
                 return
-            asyncio.create_task(self.handle_command(resp))
+            except Exception:
+                lg.exception('while reconnecting')
 
     def _cancel_waiting(self, msg: NooliteCommand):
         """
@@ -62,6 +78,11 @@ class Noolite:
             return True
         else:
             return False
+
+    async def _check_connection(self):
+        while True:
+            print(self.tty.readable())
+            await asyncio.sleep(1)
 
     def callback(self, ch):
         """
