@@ -3,7 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass, astuple, field, asdict
 
 
-APPROVAL_TIMEOUT = 5
+APPROVAL_TIMEOUT = 0.3
 MODE_SEND = 1
 MODE_RECIEVE = 2
 

@@ -30,12 +30,16 @@ class Noolite:
         self.event_que: asyncio.Queue[NooliteCommand] = asyncio.Queue()
         self.tty_name = tty_name
         self.tty = _get_tty(tty_name)
-        self.loop = loop
+        # self.loop = asyncio.get_event_loop()
         self.loop.add_reader(self.tty.fd, self._handle_tty)
         self.wait_ftr: typing.Optional[asyncio.Future] = None
         self.wait_cmd: typing.Optional[NooliteCommand] = None
         self.send_lck = asyncio.Lock()
         self.anti_jitter = anti_jitter
+
+    @property
+    def loop(self):
+        return asyncio.get_event_loop()
 
     def _handle_tty(self):
         """
