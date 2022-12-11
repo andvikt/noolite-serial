@@ -60,7 +60,6 @@ class Noolite:
 
     async def reconnect(self):
         while True:
-            await asyncio.sleep(5)
             lg.debug('reconnecting')
             try:
                 self.tty = _get_tty(self.tty_name)
@@ -68,6 +67,7 @@ class Noolite:
                 return
             except Exception:
                 lg.exception('while reconnecting')
+            await asyncio.sleep(5)
 
     def _cancel_waiting(self, msg: NooliteCommand):
         """
