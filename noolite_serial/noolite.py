@@ -3,6 +3,8 @@ import logging
 from collections import defaultdict
 from datetime import datetime
 import serial
+from serial import to_bytes
+
 from . import const
 from .command import NooliteCommand
 from typing import Callable
@@ -48,7 +50,7 @@ class Noolite:
         """
         try:
             while self.tty.in_waiting >= 17:
-                in_bytes = self.tty.read_until(174, 17)
+                in_bytes = self.tty.read_until(to_bytes([174]), 17)
                 if not isinstance(in_bytes, bytes):
                     continue
                 if len(list(in_bytes)) != 17:
