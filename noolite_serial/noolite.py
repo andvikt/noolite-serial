@@ -49,8 +49,11 @@ class Noolite:
         try:
             while self.tty.in_waiting >= 17:
                 in_bytes = self.tty.read_until(174, 17)
-                if len(in_bytes) != 17:
+                if not isinstance(in_bytes, bytes):
+                    continue
+                if len(list(in_bytes)) != 17:
                     lg.warning(f'received short message %f', list(in_bytes))
+                    continue
                 resp = NooliteCommand(*(x for x in in_bytes))
                 lg.debug(f'< %s', list(in_bytes))
                 if self._cancel_waiting(resp):
